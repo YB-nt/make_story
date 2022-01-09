@@ -1,15 +1,13 @@
-from typing import Collection
-from pymongo import MongoClient
+import pandas as pd
 import requests as req
-from pprint import pprint
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup 
 import re
 
-base_url ='https://webzine.munjang.or.kr/archives/category/novel/page/'
-def add_url(base_url):
+
+def add_url(category):
+    base_url =f'https://webzine.munjang.or.kr/archives/category/{category}/page/'
     url_list =[]
     temp =[]
-
     for i in range(1,68):
         url = base_url+str(i)
         resp = req.get(url)
@@ -25,7 +23,6 @@ def add_url(base_url):
             continue
     return temp 
 
-
 def load_data(url):
     doc =[]
     resp = req.get(url)
@@ -38,42 +35,37 @@ def load_data(url):
                 # print(value.text)
                 if (len(value.text)>10):
                     doc.append(value.text)
+        doc = ''.join(doc)
+        # print(tyep(doc))
         return doc
     else:
         print(resp.status_code)
 
-# def insert_data(data):
-#     """
-#     input: 
-#     type: dict{dict}
+def append_csv(df,data):
+    df.append(data)
+    return df
 
-#     불러온 데이터를 mongodb에 넣어준다.
-#     """
-#     # 소설 데이터 불러오기
-#     HOST = 'cluster0.qmemv.mongodb.net'
-#     USER = 'yb-nt'
-#     PASSWORD = 'ybnt'
-#     DATABASE_NAME = 'myFirstDatabase'
-#     COLLECTION_NAME = 'novel'
-#     MONGO_URI = f"mongodb+srv://{USER}:{PASSWORD}@{HOST}/{DATABASE_NAME}?retryWrites=true&w=majority"
-
-#     client = MongoClient(MONGO_URI)
-#     database = client[DATABASE_NAME]
-#     collection = database[COLLECTION_NAME]
-
-#     collection.insert_one(data)
-
-doc ={}
-novel_list = add_url(base_url)
-for check_url in novel_list:
+category ="novel"
+temp_data = []
+text_list = add_url(category)
+for check_url in text_list:
     if(len(check_url)<37):
-        # print(check_url)
-        novel_list.remove(check_url)
+       text_list.remove(check_url)
 
-for count,url in enumerate(novel_list):
-    # print(url)
-    doc[str(count)]=load_data(url)
 
-pprint(doc)
-# url = 'https://webzine.munjang.or.kr/archives/150439'
-# print(load_data(url))
+for count,url in enumerate(text_list):
+    data_list = load_data(url)
+    # print(data_list)
+    temp_data.append(data_list)
+
+sub_text ='\n\xa0\xa0\xa0'
+for idx,value in enumerate(temp_data):
+    temp_data[idx] = re.sub(sub_text,"",value)
+
+
+df = pd.DataFrame(temp_data)
+df.to_csv('text_data.csv')
+    
+
+
+    
